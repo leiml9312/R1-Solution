@@ -1,3 +1,4 @@
+TEst
 # R1 Solution
 
 React UI (Material UI) + Azure Functions serverless backend (Node/TypeScript for CRUD, Python for Excel/PDF export).
