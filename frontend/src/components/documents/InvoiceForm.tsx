@@ -16,7 +16,7 @@ const emptyLineItem = (line: number): InvoiceLineItem => ({
   dc: '',
 });
 
-const initialData: InvoiceData = {
+const defaultInvoiceData: InvoiceData = {
   shipTo: '',
   billTo: '',
   date: new Date().toISOString().slice(0, 10),
@@ -27,8 +27,15 @@ const initialData: InvoiceData = {
   lineItems: [emptyLineItem(1)],
 };
 
-export default function InvoiceForm() {
-  const [data, setData] = useState<InvoiceData>(initialData);
+interface Props {
+  // Pre-fills the form (e.g. from an order) on first render; still fully
+  // editable afterward. Only read once — pass a `key` on the parent if it
+  // needs to reset the form when this changes.
+  initialData?: InvoiceData;
+}
+
+export default function InvoiceForm({ initialData }: Props) {
+  const [data, setData] = useState<InvoiceData>(initialData ?? defaultInvoiceData);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
 

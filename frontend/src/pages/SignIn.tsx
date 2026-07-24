@@ -7,7 +7,7 @@ export default function SignIn() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string } | null)?.from ?? '/portal';
+  const from = (location.state as { from?: string } | null)?.from ?? '/customers';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

@@ -27,17 +27,9 @@ This is a skeleton only:
 
 You'll need Node.js 18+, and for the Python function app: Python 3.10+ and the [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local) (`func`) if you want to run the Functions themselves rather than just the frontend.
 
-### 1. Frontend only, against the built-in local mock server (fastest way to see the UI working)
+### 1. Frontend only (fastest way to see the UI working)
 
-No Azure Functions Core Tools required — a tiny zero-dependency mock server is included.
-
-```bash
-cd api-node
-node mock-server.js
-# serves the same CRUD endpoints as the real Functions app, on http://localhost:7071/api
-```
-
-In a second terminal:
+The Customers/Orders pages use frontend-only mock data (`frontend/src/data/mockCustomers.ts`) — no backend needed to browse them. Document export (Excel/PDF) does need `api-python` running (see section 2).
 
 ```bash
 cd frontend
@@ -46,7 +38,7 @@ npm run dev
 # open the printed localhost URL (usually http://localhost:5173)
 ```
 
-The frontend calls `VITE_API_BASE_URL` (see `frontend/.env.local`, defaults to `http://localhost:7071/api`), so it talks to the mock server exactly like it would talk to the real Azure Functions app.
+`api-node`'s generic CRUD API (`mock-server.js` or `func start`, `/api/records`) still exists and works the same as before — it's just not wired into any page currently, since the old generic Records page was replaced by Customers.
 
 ### 2. Running the real Azure Functions locally (once Core Tools are installed)
 
@@ -65,9 +57,16 @@ func start --port 7072   # export endpoints, also on mock data
 
 The Export Excel/PDF buttons call a separate base URL from the CRUD API, since they're served by `api-python` (port 7072) rather than `api-node` (port 7071). Set `VITE_EXPORT_API_BASE_URL=http://localhost:7072/api` in `frontend/.env.local` when running both real Function Apps locally — otherwise export requests go to `api-node`, which has no `/export/*` routes, and you'll get a 404 instead of a file.
 
-## Documents (Invoice / Packing List / Statement)
+## Customers, Orders & Documents
 
-The `/documents` page (behind sign-in) has one tab per document type — Invoice, Packing List, Statement — modeled on the company's existing Excel template (`R.1 SOLUTION (HK) CO., LIMITED` letterhead). Each tab is a form (header fields + line items); "Export Excel"/"Export PDF" POST the form data to `api-python` and download a generated file with the letterhead image baked in:
+Behind sign-in:
+
+- `/customers` — list of customers (frontend-only mock data for now, see `frontend/src/data/mockCustomers.ts`).
+- `/customers/:customerId` — customer info, plus embedded Packing List and Statement export forms (tabs). The Statement form is pre-filled with that customer's orders from the past month; both stay fully editable.
+- `/customers/:customerId/orders` — that customer's orders, each with a status (Intake / In Progress / Completed) and a "Generate Invoice" action.
+- `/customers/:customerId/orders/:orderId/invoice` — an Invoice form pre-filled from the order's line items, still editable before export.
+
+Each export form (Invoice, Packing List, Statement) is modeled on the company's existing Excel template (`R.1 SOLUTION (HK) CO., LIMITED` letterhead). "Export Excel"/"Export PDF" POST the form data to `api-python` and download a generated file with the letterhead image baked in:
 
 - `POST /api/documents/invoice/{excel|pdf}`
 - `POST /api/documents/packing-list/{excel|pdf}`

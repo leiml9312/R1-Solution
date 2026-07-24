@@ -4,10 +4,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
-const NAV_LINKS = [
-  { to: '/portal', label: 'Records' },
-  { to: '/documents', label: 'Documents' },
-];
+const NAV_LINKS = [{ to: '/customers', label: 'Customers' }];
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -32,7 +29,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               component={RouterLink}
               to={link.to}
               color="inherit"
-              sx={{ opacity: location.pathname === link.to ? 1 : 0.75 }}
+              sx={{ opacity: location.pathname.startsWith(link.to) ? 1 : 0.75 }}
             >
               {link.label}
             </Button>

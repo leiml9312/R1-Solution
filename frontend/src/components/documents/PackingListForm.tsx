@@ -1,10 +1,34 @@
 import { useState } from 'react';
-import { Alert, Box, Button, Grid, IconButton, Paper, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  Grid,
+  IconButton,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 import { exportDocument } from '../../api/documents';
 import { PackingListData, PackingListLineItem } from '../../types/documents';
+
+// Deliberately minimal/structural (rather than importing the Customer-domain
+// Order type) so this component stays reusable outside a customer context.
+// Any Order object already satisfies this shape.
+export interface SelectableOrder {
+  id: string;
+  orderNo: string;
+  date: string;
+  lineItems: { partNo: string; description: string; qty: number }[];
+}
 
 const emptyLineItem = (): PackingListLineItem => ({
   palletNo: '1',
@@ -17,7 +41,13 @@ const emptyLineItem = (): PackingListLineItem => ({
   measurement: '',
 });
 
-const initialData: PackingListData = {
+function isBlankLineItem(item: PackingListLineItem): boolean {
+  return (
+    !item.partNo && !item.description && !item.quantity && !item.netWeight && !item.grossWeight && !item.measurement
+  );
+}
+
+const defaultPackingListData: PackingListData = {
   shipTo: '',
   billTo: '',
   no: '',
@@ -25,10 +55,23 @@ const initialData: PackingListData = {
   lineItems: [emptyLineItem()],
 };
 
-export default function PackingListForm() {
-  const [data, setData] = useState<PackingListData>(initialData);
+interface Props {
+  // Pre-fills the form (e.g. from a customer) on first render; still fully
+  // editable afterward. Only read once — pass a `key` on the parent if it
+  // needs to reset the form when this changes.
+  initialData?: PackingListData;
+  // When provided, shows an order picker above the line items so orders can
+  // be turned into packing list rows instead of typing everything by hand.
+  // Pallet/CTN/weight/measurement aren't part of an order, so those come in
+  // blank for the user to fill in per physical package.
+  availableOrders?: SelectableOrder[];
+}
+
+export default function PackingListForm({ initialData, availableOrders }: Props) {
+  const [data, setData] = useState<PackingListData>(initialData ?? defaultPackingListData);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<SelectableOrder[]>([]);
 
   const updateField = <K extends keyof PackingListData>(key: K, value: PackingListData[K]) =>
     setData((prev) => ({ ...prev, [key]: value }));
@@ -40,6 +83,27 @@ export default function PackingListForm() {
     }));
 
   const addLineItem = () => setData((prev) => ({ ...prev, lineItems: [...prev.lineItems, emptyLineItem()] }));
+
+  const addLineItemsFromOrders = () => {
+    if (selectedOrders.length === 0) return;
+    const newRows: PackingListLineItem[] = selectedOrders.flatMap((order) =>
+      order.lineItems.map((item) => ({
+        palletNo: '1',
+        ctnNo: 0,
+        partNo: item.partNo,
+        description: item.description,
+        quantity: item.qty,
+        netWeight: 0,
+        grossWeight: 0,
+        measurement: '',
+      })),
+    );
+    setData((prev) => {
+      const keepExisting = prev.lineItems.length > 1 || !isBlankLineItem(prev.lineItems[0]);
+      return { ...prev, lineItems: [...(keepExisting ? prev.lineItems : []), ...newRows] };
+    });
+    setSelectedOrders([]);
+  };
   const removeLineItem = (index: number) =>
     setData((prev) => ({ ...prev, lineItems: prev.lineItems.filter((_, i) => i !== index) }));
 
@@ -98,6 +162,43 @@ export default function PackingListForm() {
           />
         </Grid>
       </Grid>
+
+      {availableOrders && availableOrders.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mt: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Populate from orders
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
+            <Autocomplete
+              multiple
+              size="small"
+              options={availableOrders}
+              value={selectedOrders}
+              onChange={(_e, value) => setSelectedOrders(value)}
+              getOptionLabel={(order) => `${order.orderNo} — ${order.date}`}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              disableCloseOnSelect
+              renderOption={(props, option, { selected }) => (
+                <li {...props} key={option.id}>
+                  <Checkbox
+                    icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                    checkedIcon={<CheckBoxIcon fontSize="small" />}
+                    checked={selected}
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
+                  {option.orderNo} — {option.date}
+                </li>
+              )}
+              renderInput={(params) => <TextField {...params} label="Select orders" placeholder="Orders" />}
+              sx={{ flex: 1, minWidth: 280 }}
+            />
+            <Button variant="outlined" disabled={selectedOrders.length === 0} onClick={addLineItemsFromOrders}>
+              Add to Packing List
+            </Button>
+          </Stack>
+        </Paper>
+      )}
 
       <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
         Line Items

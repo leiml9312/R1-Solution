@@ -14,7 +14,7 @@ const emptyLineItem = (): StatementLineItem => ({
   remark: '',
 });
 
-const initialData: StatementData = {
+const defaultStatementData: StatementData = {
   to: '',
   attn: '',
   tel: '',
@@ -25,8 +25,15 @@ const initialData: StatementData = {
   lineItems: [emptyLineItem()],
 };
 
-export default function StatementForm() {
-  const [data, setData] = useState<StatementData>(initialData);
+interface Props {
+  // Pre-fills the form (e.g. from a customer's recent orders) on first
+  // render; still fully editable afterward. Only read once — pass a `key`
+  // on the parent if it needs to reset the form when this changes.
+  initialData?: StatementData;
+}
+
+export default function StatementForm({ initialData }: Props) {
+  const [data, setData] = useState<StatementData>(initialData ?? defaultStatementData);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
