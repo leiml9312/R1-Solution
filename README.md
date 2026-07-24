@@ -63,6 +63,8 @@ pip install -r requirements.txt
 func start --port 7072   # export endpoints, also on mock data
 ```
 
+The Export Excel/PDF buttons call a separate base URL from the CRUD API, since they're served by `api-python` (port 7072) rather than `api-node` (port 7071). Set `VITE_EXPORT_API_BASE_URL=http://localhost:7072/api` in `frontend/.env.local` when running both real Function Apps locally — otherwise export requests go to `api-node`, which has no `/export/*` routes, and you'll get a 404 instead of a file.
+
 ### 3. Switching to a real database later
 
 1. Create an Azure Cosmos DB for NoSQL account on the free tier, and grab its connection string.

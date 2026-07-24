@@ -65,6 +65,8 @@ export default function App() {
             startIcon={<DownloadIcon />}
             component="a"
             href={exportUrl('excel')}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Export Excel
           </Button>
@@ -73,6 +75,8 @@ export default function App() {
             startIcon={<DownloadIcon />}
             component="a"
             href={exportUrl('pdf')}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             Export PDF
           </Button>
