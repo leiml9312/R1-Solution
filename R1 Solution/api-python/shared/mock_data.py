@@ -2,15 +2,15 @@
 # Python export functions can generate files locally before a real DB and a
 # real inter-service data path (shared DB, or a call to the Node API) exist.
 #
-# When MONGODB_CONNECTION_STRING is set to a real Azure Cosmos DB for MongoDB
-# connection string, replace get_records() with a real query via pymongo
-# (add `pymongo` to requirements.txt).
+# When COSMOS_CONNECTION_STRING is set to a real Azure Cosmos DB (NoSQL API)
+# connection string, replace get_records() with a real query via
+# azure-cosmos (add `azure-cosmos` to requirements.txt).
 
 import os
 
 
 def get_records():
-    connection_string = os.environ.get("MONGODB_CONNECTION_STRING", "mock")
+    connection_string = os.environ.get("COSMOS_CONNECTION_STRING", "mock")
     use_mock = connection_string == "mock"
 
     if use_mock:
@@ -20,8 +20,9 @@ def get_records():
         ]
 
     # Placeholder for the real implementation:
-    # from pymongo import MongoClient
-    # client = MongoClient(connection_string)
-    # db = client[os.environ.get("MONGODB_DB_NAME", "r1solution")]
-    # return list(db.records.find({}, {"_id": 0}))
-    raise NotImplementedError("Real DB access not wired up yet — set MONGODB_CONNECTION_STRING=mock for now.")
+    # from azure.cosmos import CosmosClient
+    # client = CosmosClient.from_connection_string(connection_string)
+    # database = client.get_database_client(os.environ.get("COSMOS_DATABASE_NAME", "r1solution"))
+    # container = database.get_container_client(os.environ.get("COSMOS_CONTAINER_NAME", "records"))
+    # return list(container.query_items("SELECT c.name, c.amount, c.createdAt FROM c", enable_cross_partition_query=True))
+    raise NotImplementedError("Real DB access not wired up yet — set COSMOS_CONNECTION_STRING=mock for now.")

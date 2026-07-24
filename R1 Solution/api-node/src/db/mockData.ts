@@ -1,6 +1,6 @@
-// In-memory fake "database" used whenever DATABASE_URL is unset or "mock".
-// Resets every time the process restarts — good enough for local dev/testing
-// of the UI and API shape before a real database is connected.
+// In-memory fake "database" used whenever COSMOS_CONNECTION_STRING is unset
+// or "mock". Resets every time the process restarts — good enough for local
+// dev/testing of the UI and API shape before a real database is connected.
 
 export interface RecordItem {
   id: string;

@@ -7,19 +7,19 @@ React UI (Material UI) + Azure Functions serverless backend (Node/TypeScript for
 ```
 R1 Solution/
 ├── frontend/        React app (Vite + MUI)
-├── api-node/         Azure Functions (Node/TS) - CRUD, uses mock in-memory DB until a real MONGODB_CONNECTION_STRING is set
+├── api-node/         Azure Functions (Node/TS) - CRUD, uses mock in-memory DB until a real COSMOS_CONNECTION_STRING is set
 ├── api-python/       Azure Functions (Python) - Excel/PDF export, uses mock data until wired to the real DB
 └── infra/            Placeholder for Bicep/Terraform (added later, before Azure deployment)
 ```
 
 ## Database
 
-Planned: **Azure Cosmos DB for MongoDB** (RU-based), using Azure's lifetime free tier (1,000 RU/s + 25 GB storage, free forever, one per subscription). It speaks the standard MongoDB wire protocol, so the Node API uses the plain `mongodb` npm driver and the Python export functions would use `pymongo` — no special SDK. Not provisioned yet.
+Planned: **Azure Cosmos DB for NoSQL** (RU-based), using Azure's lifetime free tier (1,000 RU/s + 25 GB storage, free forever, one per subscription). The Node API uses the `@azure/cosmos` npm package, and the Python export functions would use the `azure-cosmos` package — the native Cosmos SDKs, not a Mongo- or Postgres-compatible driver. Not provisioned yet.
 
 ## Status
 
 This is a skeleton only:
-- No real database is connected yet. `api-node` and `api-python` both fall back to an in-memory mock dataset (see `api-node/src/db/mockData.ts` and `api-python/shared/mock_data.py`) whenever `MONGODB_CONNECTION_STRING` is unset or `"mock"`.
+- No real database is connected yet. `api-node` and `api-python` both fall back to an in-memory mock dataset (see `api-node/src/db/mockData.ts` and `api-python/shared/mock_data.py`) whenever `COSMOS_CONNECTION_STRING` is unset or `"mock"`.
 - Nothing has been deployed to Azure. Deployment/infra (Bicep, Function Apps, Static Web App, Cosmos DB) comes later.
 - Not committed to git yet, per instructions.
 
@@ -65,7 +65,7 @@ func start --port 7072   # export endpoints, also on mock data
 
 ### 3. Switching to a real database later
 
-1. Create an Azure Cosmos DB for MongoDB (RU-based) account on the free tier, and grab its connection string.
-2. Set `MONGODB_CONNECTION_STRING` (and optionally `MONGODB_DB_NAME`) in `api-node/local.settings.json` (local) or the Function App's environment settings (deployed) to that connection string.
-3. That's it on the Node side — `api-node/src/db/records.ts` automatically switches from the in-memory mock to real MongoDB calls (via `api-node/src/db/mongoClient.ts`) as soon as the connection string is present and isn't `"mock"`.
-4. For the Python export functions, add `pymongo` to `api-python/requirements.txt` and fill in the real query in `api-python/shared/mock_data.py` (the placeholder code is already sketched in a comment there), then set the same `MONGODB_CONNECTION_STRING` in `api-python/local.settings.json`.
+1. Create an Azure Cosmos DB for NoSQL account on the free tier, and grab its connection string.
+2. Set `COSMOS_CONNECTION_STRING` (and optionally `COSMOS_DATABASE_NAME` / `COSMOS_CONTAINER_NAME`) in `api-node/local.settings.json` (local) or the Function App's environment settings (deployed) to that connection string.
+3. That's it on the Node side — `api-node/src/db/records.ts` automatically switches from the in-memory mock to real Cosmos DB calls (via `api-node/src/db/cosmosClient.ts`, using the `@azure/cosmos` SDK) as soon as the connection string is present and isn't `"mock"`.
+4. For the Python export functions, add `azure-cosmos` to `api-python/requirements.txt` and fill in the real query in `api-python/shared/mock_data.py` (the placeholder code is already sketched in a comment there), then set the same `COSMOS_CONNECTION_STRING` in `api-python/local.settings.json`.

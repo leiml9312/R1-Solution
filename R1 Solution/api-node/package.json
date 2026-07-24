@@ -10,8 +10,8 @@
     "mock": "node mock-server.js"
   },
   "dependencies": {
-    "@azure/functions": "^4.5.1",
-    "mongodb": "^6.8.0"
+    "@azure/cosmos": "^4.1.1",
+    "@azure/functions": "^4.5.1"
   },
   "devDependencies": {
     "typescript": "^5.5.4"
