@@ -1,0 +1,20 @@
+// Placeholder schema. Not wired up yet — DATABASE_URL is a mock value and
+// api-node/src/db/records.ts currently uses the in-memory mock instead of
+// this Prisma client. Fill this in and run `npx prisma migrate dev` once a
+// real Postgres instance (e.g. Azure Database for PostgreSQL) is available.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Record {
+  id        String   @id @default(uuid())
+  name      String
+  amount    Float
+  createdAt DateTime @default(now())
+}

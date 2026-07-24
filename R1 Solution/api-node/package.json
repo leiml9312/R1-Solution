@@ -1,0 +1,19 @@
+{
+  "name": "r1-solution-api-node",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "npm run build && func start",
+    "mock": "node mock-server.js"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.1",
+    "mongodb": "^6.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
