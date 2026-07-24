@@ -65,6 +65,16 @@ func start --port 7072   # export endpoints, also on mock data
 
 The Export Excel/PDF buttons call a separate base URL from the CRUD API, since they're served by `api-python` (port 7072) rather than `api-node` (port 7071). Set `VITE_EXPORT_API_BASE_URL=http://localhost:7072/api` in `frontend/.env.local` when running both real Function Apps locally — otherwise export requests go to `api-node`, which has no `/export/*` routes, and you'll get a 404 instead of a file.
 
+## Documents (Invoice / Packing List / Statement)
+
+The `/documents` page (behind sign-in) has one tab per document type — Invoice, Packing List, Statement — modeled on the company's existing Excel template (`R.1 SOLUTION (HK) CO., LIMITED` letterhead). Each tab is a form (header fields + line items); "Export Excel"/"Export PDF" POST the form data to `api-python` and download a generated file with the letterhead image baked in:
+
+- `POST /api/documents/invoice/{excel|pdf}`
+- `POST /api/documents/packing-list/{excel|pdf}`
+- `POST /api/documents/statement/{excel|pdf}`
+
+Generation logic lives in `api-python/shared/documents.py`. The `.xlsx` outputs use real formulas (line totals, sums, and — for the Statement — `SUMIFS`-based aging buckets computed against the Date field) rather than pre-computed values, so they keep recalculating if edited afterward. This feature has no mock-server equivalent — it needs `api-python` running (see section 2 above); `mock-server.js` returns a `501` explaining that if you hit it without the Python app running.
+
 ### 3. Switching to a real database later
 
 1. Create an Azure Cosmos DB for NoSQL account on the free tier, and grab its connection string.

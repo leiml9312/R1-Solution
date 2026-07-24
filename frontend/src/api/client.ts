@@ -10,7 +10,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:7071
 // Defaults to API_BASE_URL so the single-port mock server keeps working with
 // no extra config; override VITE_EXPORT_API_BASE_URL when running the real
 // Functions apps locally, or once both are deployed behind their own URLs.
-const EXPORT_API_BASE_URL = import.meta.env.VITE_EXPORT_API_BASE_URL ?? API_BASE_URL;
+export const EXPORT_API_BASE_URL = import.meta.env.VITE_EXPORT_API_BASE_URL ?? API_BASE_URL;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

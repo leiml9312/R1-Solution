@@ -96,6 +96,15 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  // Invoice/Packing List/Statement generation lives entirely in api-python
+  // (openpyxl/reportlab, with the company letterhead baked in) — no mock here.
+  const documentExportMatch = path.match(/^\/api\/documents\/(invoice|packing-list|statement)\/(excel|pdf)$/);
+  if (documentExportMatch && req.method === 'POST') {
+    return sendJson(res, 501, {
+      error: 'Document export mock not implemented in mock-server.js — run the Python Function App (api-python) to generate real Invoice/Packing List/Statement files.',
+    });
+  }
+
   return sendJson(res, 404, { error: 'not found' });
 });
 

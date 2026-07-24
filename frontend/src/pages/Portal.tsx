@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
-import { AppBar, Box, Button, Container, Stack, Toolbar, Typography, Alert } from '@mui/material';
+import { Button, Container, Stack, Alert } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
-import LogoutIcon from '@mui/icons-material/Logout';
-import { useNavigate } from 'react-router-dom';
+import AppShell from '../components/AppShell';
 import RecordForm from '../components/RecordForm';
 import RecordTable from '../components/RecordTable';
 import { RecordItem, createRecord, deleteRecord, exportUrl, listRecords } from '../api/client';
-import { useAuth } from '../auth/AuthContext';
 
 export default function Portal() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -44,29 +40,8 @@ export default function Portal() {
     await refresh();
   };
 
-  const handleSignOut = () => {
-    signOut();
-    navigate('/', { replace: true });
-  };
-
   return (
-    <Box>
-      <AppBar position="static" color="primary" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            R1 Solution
-          </Typography>
-          {user && (
-            <Typography variant="body2" sx={{ mr: 2, opacity: 0.85 }}>
-              {user.name}
-            </Typography>
-          )}
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleSignOut}>
-            Sign Out
-          </Button>
-        </Toolbar>
-      </AppBar>
-
+    <AppShell>
       <Container maxWidth="md" sx={{ py: 4 }}>
         {apiError && (
           <Alert severity="warning" sx={{ mb: 3 }}>
@@ -100,6 +75,6 @@ export default function Portal() {
           </Button>
         </Stack>
       </Container>
-    </Box>
+    </AppShell>
   );
 }
