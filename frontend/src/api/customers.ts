@@ -22,3 +22,11 @@ export async function getOrder(customerId: string, orderId: string): Promise<Ord
   const orders = await listOrders(customerId);
   return orders.find((o) => o.id === orderId) ?? null;
 }
+
+export async function createOrder(customerId: string, input: Omit<Order, 'id'>): Promise<Order> {
+  const customer = mockCustomers.find((c) => c.id === customerId);
+  if (!customer) throw new Error(`Customer ${customerId} not found`);
+  const order: Order = { ...input, id: `ord-${Date.now()}` };
+  customer.orders = [order, ...customer.orders];
+  return order;
+}

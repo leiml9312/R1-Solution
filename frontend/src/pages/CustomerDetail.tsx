@@ -1,76 +1,45 @@
-import { SyntheticEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Box,
   Button,
+  Chip,
   CircularProgress,
   Container,
   Grid,
   Paper,
   Stack,
-  Tab,
-  Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DescriptionIcon from '@mui/icons-material/Description';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import ReceiptIcon from '@mui/icons-material/Receipt';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
-import PackingListForm from '../components/documents/PackingListForm';
-import StatementForm from '../components/documents/StatementForm';
 import { getCustomer } from '../api/customers';
-import { Customer } from '../types/customers';
-import { PackingListData, StatementData } from '../types/documents';
+import { Customer, OrderStatus } from '../types/customers';
 import { isWithinLastMonth, orderTotal } from '../utils/orders';
 
-const TABS = ['packing-list', 'statement'] as const;
-type TabKey = (typeof TABS)[number];
-
-function buildPackingListInitialData(customer: Customer): PackingListData {
-  return {
-    shipTo: `${customer.name}\n${customer.address}`,
-    billTo: `${customer.name}\n${customer.billingAddress}`,
-    no: '',
-    date: new Date().toISOString().slice(0, 10),
-    lineItems: [
-      { palletNo: '1', ctnNo: 0, partNo: '', description: '', quantity: 0, netWeight: 0, grossWeight: 0, measurement: '' },
-    ],
-  };
-}
-
-function buildStatementInitialData(customer: Customer): StatementData {
-  const recentOrders = customer.orders.filter((order) => isWithinLastMonth(order.date));
-  const lineItems = recentOrders.map((order) => ({
-    date: order.date,
-    invoiceNo: order.orderNo,
-    currency: order.currency,
-    amount: orderTotal(order),
-    remark: order.status,
-  }));
-  return {
-    to: `${customer.name}\n${customer.address}`,
-    attn: '',
-    tel: customer.phone,
-    date: new Date().toISOString().slice(0, 10),
-    from: '',
-    paymentTerm: '',
-    remark: '',
-    lineItems: lineItems.length > 0
-      ? lineItems
-      : [{ date: new Date().toISOString().slice(0, 10), invoiceNo: '', currency: 'USD', amount: 0, remark: '' }],
-  };
-}
+const STATUS_COLOR: Record<OrderStatus, 'default' | 'warning' | 'success'> = {
+  Intake: 'default',
+  'In Progress': 'warning',
+  Completed: 'success',
+};
 
 export default function CustomerDetail() {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const [customer, setCustomer] = useState<Customer | null | undefined>(undefined);
-  const [tab, setTab] = useState<TabKey>('packing-list');
 
   useEffect(() => {
     if (!customerId) return;
     getCustomer(customerId).then(setCustomer);
   }, [customerId]);
-
-  const handleChange = (_e: SyntheticEvent, value: TabKey) => setTab(value);
 
   if (customer === undefined) {
     return (
@@ -92,21 +61,16 @@ export default function CustomerDetail() {
     );
   }
 
+  const recentOrders = customer.orders.filter((order) => isWithinLastMonth(order.date));
+
   return (
     <AppShell>
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 3 }}>
-          <Typography variant="h5">{customer.name}</Typography>
-          <Button
-            variant="contained"
-            startIcon={<ListAltIcon />}
-            onClick={() => navigate(`/customers/${customer.id}/orders`)}
-          >
-            View Orders
-          </Button>
-        </Stack>
+        <Typography variant="h5" sx={{ mb: 3 }}>
+          {customer.name}
+        </Typography>
 
-        <Paper sx={{ p: 3, mb: 3 }} elevation={1}>
+        <Paper sx={{ p: 3, mb: 4 }} elevation={1}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <Typography variant="caption" color="text.secondary">
@@ -139,20 +103,81 @@ export default function CustomerDetail() {
           </Grid>
         </Paper>
 
-        <Tabs value={tab} onChange={handleChange} sx={{ mb: 3 }}>
-          <Tab value="packing-list" label="Packing List" />
-          <Tab value="statement" label="Statement" />
-        </Tabs>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Typography variant="h6">Recent Orders (past 30 days)</Typography>
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate(`/customers/${customer.id}/orders/new`)}
+            >
+              New Order
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ListAltIcon />}
+              onClick={() => navigate(`/customers/${customer.id}/orders`)}
+            >
+              View All Orders
+            </Button>
+          </Stack>
+        </Stack>
 
-        <Box hidden={tab !== 'packing-list'}>
-          <PackingListForm initialData={buildPackingListInitialData(customer)} availableOrders={customer.orders} />
-        </Box>
-        <Box hidden={tab !== 'statement'}>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Pre-filled with this customer's orders from the past month — still fully editable.
-          </Typography>
-          <StatementForm initialData={buildStatementInitialData(customer)} />
-        </Box>
+        <TableContainer component={Paper} elevation={1} sx={{ mb: 4 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Order No.</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Total</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {recentOrders.map((order) => (
+                <TableRow key={order.id} hover>
+                  <TableCell>{order.orderNo}</TableCell>
+                  <TableCell>{order.date}</TableCell>
+                  <TableCell>
+                    <Chip size="small" label={order.status} color={STATUS_COLOR[order.status]} />
+                  </TableCell>
+                  <TableCell align="right">
+                    {order.currency} {orderTotal(order).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {recentOrders.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4}>
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                      No orders in the past 30 days.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Documents
+        </Typography>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            startIcon={<ReceiptIcon />}
+            onClick={() => navigate(`/customers/${customer.id}/packing-list`)}
+          >
+            Packing List
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<DescriptionIcon />}
+            onClick={() => navigate(`/customers/${customer.id}/statement`)}
+          >
+            Statement
+          </Button>
+        </Stack>
       </Container>
     </AppShell>
   );

@@ -1,10 +1,37 @@
 import { useState } from 'react';
-import { Alert, Box, Button, Grid, IconButton, Paper, Stack, TextField, Typography } from '@mui/material';
+import {
+  Alert,
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  Grid,
+  IconButton,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 import { exportDocument } from '../../api/documents';
 import { StatementData, StatementLineItem } from '../../types/documents';
+
+// Deliberately minimal/structural (rather than importing the Customer-domain
+// Order type) so this component stays reusable outside a customer context.
+// Callers compute `amount` (e.g. sum of an order's line items) up front,
+// since that's domain logic this component shouldn't need to know about.
+export interface SelectableOrder {
+  id: string;
+  orderNo: string;
+  date: string;
+  currency: string;
+  amount: number;
+  remark?: string;
+}
 
 const emptyLineItem = (): StatementLineItem => ({
   date: new Date().toISOString().slice(0, 10),
@@ -13,6 +40,10 @@ const emptyLineItem = (): StatementLineItem => ({
   amount: 0,
   remark: '',
 });
+
+function isBlankLineItem(item: StatementLineItem): boolean {
+  return !item.invoiceNo && !item.amount && !item.remark;
+}
 
 const defaultStatementData: StatementData = {
   to: '',
@@ -30,12 +61,16 @@ interface Props {
   // render; still fully editable afterward. Only read once — pass a `key`
   // on the parent if it needs to reset the form when this changes.
   initialData?: StatementData;
+  // When provided, shows an order picker above the line items so more
+  // orders can be added as statement lines instead of typing them by hand.
+  availableOrders?: SelectableOrder[];
 }
 
-export default function StatementForm({ initialData }: Props) {
+export default function StatementForm({ initialData, availableOrders }: Props) {
   const [data, setData] = useState<StatementData>(initialData ?? defaultStatementData);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOrders, setSelectedOrders] = useState<SelectableOrder[]>([]);
 
   const updateField = <K extends keyof StatementData>(key: K, value: StatementData[K]) =>
     setData((prev) => ({ ...prev, [key]: value }));
@@ -49,6 +84,27 @@ export default function StatementForm({ initialData }: Props) {
   const addLineItem = () => setData((prev) => ({ ...prev, lineItems: [...prev.lineItems, emptyLineItem()] }));
   const removeLineItem = (index: number) =>
     setData((prev) => ({ ...prev, lineItems: prev.lineItems.filter((_, i) => i !== index) }));
+
+  const addLineItemsFromOrders = () => {
+    if (selectedOrders.length === 0) return;
+    const newRows: StatementLineItem[] = selectedOrders.map((order) => ({
+      date: order.date,
+      invoiceNo: order.orderNo,
+      currency: order.currency,
+      amount: order.amount,
+      remark: order.remark ?? '',
+    }));
+    setData((prev) => {
+      const keepExisting = prev.lineItems.length > 1 || !isBlankLineItem(prev.lineItems[0]);
+      return { ...prev, lineItems: [...(keepExisting ? prev.lineItems : []), ...newRows] };
+    });
+    setSelectedOrders([]);
+  };
+
+  // Orders already represented as a line item (matched by invoice no.)
+  // drop out of the picker so they can't be added twice.
+  const addedInvoiceNos = new Set(data.lineItems.map((item) => item.invoiceNo).filter(Boolean));
+  const pickableOrders = (availableOrders ?? []).filter((order) => !addedInvoiceNos.has(order.orderNo));
 
   const total = data.lineItems.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
 
@@ -100,6 +156,43 @@ export default function StatementForm({ initialData }: Props) {
           <TextField label="From" value={data.from} onChange={(e) => updateField('from', e.target.value)} fullWidth />
         </Grid>
       </Grid>
+
+      {availableOrders && availableOrders.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, mt: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Add orders
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'flex-start' }}>
+            <Autocomplete
+              multiple
+              size="small"
+              options={pickableOrders}
+              value={selectedOrders}
+              onChange={(_e, value) => setSelectedOrders(value)}
+              getOptionLabel={(order) => `${order.orderNo} — ${order.date}`}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              disableCloseOnSelect
+              renderOption={(props, option, { selected }) => (
+                <li {...props} key={option.id}>
+                  <Checkbox
+                    icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                    checkedIcon={<CheckBoxIcon fontSize="small" />}
+                    checked={selected}
+                    size="small"
+                    sx={{ mr: 1 }}
+                  />
+                  {option.orderNo} — {option.date} ({option.currency} {option.amount.toFixed(2)})
+                </li>
+              )}
+              renderInput={(params) => <TextField {...params} label="Select orders" placeholder="Orders" />}
+              sx={{ flex: 1, minWidth: 280 }}
+            />
+            <Button variant="outlined" disabled={selectedOrders.length === 0} onClick={addLineItemsFromOrders}>
+              Add to Statement
+            </Button>
+          </Stack>
+        </Paper>
+      )}
 
       <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
         Invoices
